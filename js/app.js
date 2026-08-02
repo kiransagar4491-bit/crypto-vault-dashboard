@@ -236,20 +236,53 @@ function setActiveTab(tab) {
   if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
 }
 
-/* ---------- Simulated live price updates ---------- */
+/* ---------- Live market data ---------- */
+const COINGECKO_IDS = {
+  BTC: 'bitcoin', ETH: 'ethereum', BNB: 'binancecoin', SOL: 'solana',
+  XRP: 'ripple', ADA: 'cardano', AVAX: 'avalanche-2', DOGE: 'dogecoin',
+  DOT: 'polkadot', LINK: 'chainlink', MATIC: 'matic-network', SHIB: 'shiba-inu'
+};
+const LIVE_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price';
+const LIVE_REFRESH_MS = 60000;
 let liveTimer = null;
+let liveRequest = null;
+
+async function fetchLivePrices() {
+  if (liveRequest) return liveRequest;
+  const ids = Object.values(COINGECKO_IDS).join(',');
+  const url = `${LIVE_PRICE_URL}?ids=${encodeURIComponent(ids)}&vs_currencies=usd&include_24hr_change=true`;
+  liveRequest = fetch(url, { headers: { Accept: 'application/json' } })
+    .then(response => {
+      if (!response.ok) throw new Error(`Market API returned ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      COINS.forEach(coin => {
+        const quote = data[COINGECKO_IDS[coin.sym]];
+        if (!quote || typeof quote.usd !== 'number') return;
+        coin.price = quote.usd;
+        if (typeof quote.usd_24h_change === 'number') coin.change = quote.usd_24h_change;
+      });
+      renderMarketList(currentMarketFilter);
+      renderFeatured();
+      renderSignals();
+      renderChartCoins();
+      renderChart();
+      return data;
+    })
+    .catch(error => {
+      console.warn('Live market data unavailable; keeping the last known prices.', error);
+      showToast('Live market data is temporarily unavailable');
+      return null;
+    })
+    .finally(() => { liveRequest = null; });
+  return liveRequest;
+}
+
 function startLiveUpdates() {
   if (liveTimer) clearInterval(liveTimer);
-  liveTimer = setInterval(() => {
-    COINS.forEach(c => {
-      const drift = (Math.random() - 0.48) * 0.4;
-      c.price = Math.max(c.price * (1 + drift / 1000), 0.00001);
-      c.change = Math.min(15, Math.max(-15, c.change + (Math.random() - 0.5) * 0.3));
-    });
-    renderMarketList(currentMarketFilter);
-    renderFeatured();
-    renderSignals();
-  }, 4000);
+  fetchLivePrices();
+  liveTimer = setInterval(fetchLivePrices, LIVE_REFRESH_MS);
 }
 
 let currentMarketFilter = 'all';
