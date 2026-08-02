@@ -388,10 +388,9 @@ function renderChart() {
   });
 
   const first = candles[0].open;
+  lastClose = coin.price;
   const pct = coin.change || ((lastClose - first) / first * 100);
   const pctColor = pct >= 0 ? 'var(--green)' : 'var(--red)';
-  const pct = coin.change || 0;
-  lastClose = coin.price;
   const coinInfo = `
     <div class="chart-coin-name">${coinIcon(coin)}<span>${coin.name}</span><span class="coin-sym">${coin.sym}</span></div>
     <div class="chart-coin-price" style="color:${pctColor}">${fmtPrice(lastClose)}</div>
