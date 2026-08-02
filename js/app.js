@@ -15,7 +15,7 @@ const COINS = [
   { rank: 8, sym: 'DOGE', name: 'Dogecoin', price: 0.1612, change: 8.94, icon: 'Ð', color: '#c2a633' },
   { rank: 9, sym: 'DOT', name: 'Polkadot', price: 7.84, change: 0.62, icon: '●', color: '#e6007a' },
   { rank: 10, sym: 'LINK', name: 'Chainlink', price: 15.32, change: 4.11, icon: '⬡', color: '#2a5ada' },
-  { rank: 11, sym: 'MATIC', name: 'Polygon', price: 0.743, change: 2.75, icon: '⬡', color: '#8247e5' },
+  { rank: 11, sym: 'POL', name: 'Polygon', price: 0.743, change: 2.75, icon: '⬡', color: '#8247e5' },
   { rank: 12, sym: 'SHIB', name: 'Shiba Inu', price: 0.0000245, change: 6.33, icon: '🐕', color: '#e6432d' },
 ];
 
@@ -240,7 +240,7 @@ function setActiveTab(tab) {
 const COINPAPRIKA_IDS = {
   BTC: 'btc-bitcoin', ETH: 'eth-ethereum', BNB: 'bnb-binance-coin', SOL: 'sol-solana',
   XRP: 'xrp-xrp', ADA: 'ada-cardano', AVAX: 'avax-avalanche', DOGE: 'doge-dogecoin',
-  DOT: 'dot-polkadot-token', LINK: 'link-chainlink', MATIC: 'pol-polygon-ecosystem-token', SHIB: 'shib-shiba-inu'
+  DOT: 'dot-polkadot-token', LINK: 'link-chainlink', POL: 'pol-polygon-ecosystem-token', SHIB: 'shib-shiba-inu'
 };
 const LIVE_PRICE_URL = 'https://koda-b1059638.base44.app/functions/getCryptoMarketData';
 const LIVE_REFRESH_MS = 1000;
@@ -260,6 +260,8 @@ async function fetchLivePrices() {
         const ticker = byId[COINPAPRIKA_IDS[coin.sym]];
         if (!ticker || typeof ticker.price !== 'number') return;
         coin.price = ticker.price;
+        if (typeof ticker.rank === 'number') coin.rank = ticker.rank;
+        if (typeof ticker.name === 'string') coin.name = ticker.name;
         if (typeof ticker.percent_change_24h === 'number') coin.change = ticker.percent_change_24h;
       });
       renderMarketList(currentMarketFilter);
