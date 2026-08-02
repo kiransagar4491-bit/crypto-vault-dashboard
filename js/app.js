@@ -287,7 +287,10 @@ async function fetchChartScans() {
       return response.json();
     })
     .then(payload => {
-      chartScans = Object.fromEntries(payload.data.map(scan => [scan.symbol, scan]));
+      chartScans = Object.fromEntries(payload.data.map(scan => {
+        const liveCoin = getCoin(scan.symbol);
+        return [scan.symbol, { ...scan, price: liveCoin?.price ?? scan.price }];
+      }));
       renderSignals();
       renderChart();
       return payload;
@@ -324,6 +327,8 @@ function fetchLivePrices() {
         if (typeof ticker.rank === 'number') coin.rank = ticker.rank;
         if (typeof ticker.name === 'string') coin.name = ticker.name;
         if (typeof ticker.percent_change_24h === 'number') coin.change = ticker.percent_change_24h;
+        // Keep Chart and Signals anchored to the same live proxy price as Market.
+        if (chartScans[coin.sym]) chartScans[coin.sym].price = coin.price;
       });
       renderMarketList(currentMarketFilter);
       renderFeatured();
