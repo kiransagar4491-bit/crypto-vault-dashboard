@@ -237,38 +237,37 @@ function setActiveTab(tab) {
 }
 
 /* ---------- Live market data ---------- */
-const COINGECKO_IDS = {
-  BTC: 'bitcoin', ETH: 'ethereum', BNB: 'binancecoin', SOL: 'solana',
-  XRP: 'ripple', ADA: 'cardano', AVAX: 'avalanche-2', DOGE: 'dogecoin',
-  DOT: 'polkadot', LINK: 'chainlink', MATIC: 'polygon-ecosystem-token', SHIB: 'shiba-inu'
+const COINPAPRIKA_IDS = {
+  BTC: 'btc-bitcoin', ETH: 'eth-ethereum', BNB: 'bnb-binance-coin', SOL: 'sol-solana',
+  XRP: 'xrp-xrp', ADA: 'ada-cardano', AVAX: 'avax-avalanche', DOGE: 'doge-dogecoin',
+  DOT: 'dot-polkadot-token', LINK: 'link-chainlink', MATIC: 'pol-polygon-ecosystem-token', SHIB: 'shib-shiba-inu'
 };
-const LIVE_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price';
+const LIVE_PRICE_URL = 'https://api.coinpaprika.com/v1/tickers?quotes=USD';
 const LIVE_REFRESH_MS = 1000;
 let liveTimer = null;
 let liveRequest = null;
 
 async function fetchLivePrices() {
   if (liveRequest) return liveRequest;
-  const ids = Object.values(COINGECKO_IDS).join(',');
-  const url = `${LIVE_PRICE_URL}?ids=${encodeURIComponent(ids)}&vs_currencies=usd&include_24hr_change=true`;
-  liveRequest = fetch(url, { headers: { Accept: 'application/json' } })
+  liveRequest = fetch(LIVE_PRICE_URL, { headers: { Accept: 'application/json' } })
     .then(response => {
       if (!response.ok) throw new Error(`Market API returned ${response.status}`);
       return response.json();
     })
-    .then(data => {
+    .then(tickers => {
+      const byId = Object.fromEntries(tickers.map(ticker => [ticker.id, ticker]));
       COINS.forEach(coin => {
-        const quote = data[COINGECKO_IDS[coin.sym]];
-        if (!quote || typeof quote.usd !== 'number') return;
-        coin.price = quote.usd;
-        if (typeof quote.usd_24h_change === 'number') coin.change = quote.usd_24h_change;
+        const quote = byId[COINPAPRIKA_IDS[coin.sym]]?.quotes?.USD;
+        if (!quote || typeof quote.price !== 'number') return;
+        coin.price = quote.price;
+        if (typeof quote.percent_change_24h === 'number') coin.change = quote.percent_change_24h;
       });
       renderMarketList(currentMarketFilter);
       renderFeatured();
       renderSignals();
       renderChartCoins();
       renderChart();
-      return data;
+      return tickers;
     })
     .catch(error => {
       console.warn('Live market data unavailable; keeping the last known prices.', error);
