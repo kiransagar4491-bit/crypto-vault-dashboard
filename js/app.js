@@ -243,7 +243,7 @@ const COINGECKO_IDS = {
   DOT: 'polkadot', LINK: 'chainlink', MATIC: 'polygon-ecosystem-token', SHIB: 'shiba-inu'
 };
 const LIVE_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price';
-const LIVE_REFRESH_MS = 60000;
+const LIVE_REFRESH_MS = 1000;
 let liveTimer = null;
 let liveRequest = null;
 
