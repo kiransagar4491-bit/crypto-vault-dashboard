@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CryptoVault — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- Background decoration -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">₿</div>
+      <div>
+        <h1 class="brand-name">Crypto<span>Vault</span></h1>
+        <p class="brand-sub">Market Dashboard</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="btnSearch" title="Search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      </button>
+      <button class="icon-btn" id="btnAlert" title="Alerts">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+        <span class="badge-dot"></span>
+      </button>
+      <div class="avatar">A</div>
+    </div>
+  </header>
+
+  <!-- ============ SEARCH OVERLAY ============ -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="text" id="searchInput" placeholder="Search coins, e.g. Bitcoin, ETH..." autocomplete="off" />
+      <button class="search-close" id="searchClose">&times;</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <main class="app-main">
+
+    <!-- ============ TAB: HOME ============ -->
+    <section class="tab-panel active" id="panel-home">
+      <!-- Greeting -->
+      <div class="greeting">
+        <h2>Good evening 👋</h2>
+        <p>Here's your market overview</p>
+      </div>
+
+      <!-- Market list -->
+      <div class="section-head">
+        <h3>Market Overview</h3>
+        <div class="seg">
+          <button class="seg-btn active">All</button>
+          <button class="seg-btn">Gainers</button>
+          <button class="seg-btn">Losers</button>
+        </div>
+      </div>
+
+      <div class="market-list" id="marketList"></div>
+
+      <!-- Featured coins -->
+      <div class="section-head">
+        <h3>Trending</h3>
+        <a href="#" class="see-all">See all →</a>
+      </div>
+      <div class="featured-row" id="featuredRow"></div>
+    </section>
+
+    <!-- ============ TAB: WATCHLIST ============ -->
+    <section class="tab-panel" id="panel-watchlist">
+      <div class="greeting">
+        <h2>My Watchlist</h2>
+        <p>Track the coins that matter to you</p>
+      </div>
+
+      <div class="add-watch">
+        <input type="text" id="watchInput" placeholder="Add a coin symbol, e.g. SOL..." />
+        <button class="btn btn-primary" id="btnAddWatch">+ Add</button>
+      </div>
+
+      <div class="watchlist" id="watchlist"></div>
+      <p class="empty-note" id="watchEmpty">No coins in your watchlist yet. Add one above!</p>
+    </section>
+
+    <!-- ============ TAB: SIGNALS ============ -->
+    <section class="tab-panel" id="panel-signals">
+      <div class="greeting">
+        <h2>Trading Signals</h2>
+        <p>AI-powered buy &amp; sell recommendations</p>
+      </div>
+
+      <!-- Top menu options -->
+      <div class="signal-top-menu">
+        <div class="menu-item">
+          <button class="menu-trigger" id="signalTypeMenu" type="button">
+            <span class="menu-label">Filter</span>
+            <span id="signalTypeLabel">All Types</span>
+            <span class="menu-caret">▾</span>
+          </button>
+          <div class="menu-dropdown" id="signalTypeDropdown">
+            <button type="button" data-val="all">All Types</button>
+            <button type="button" data-val="buy">Buy</button>
+            <button type="button" data-val="sell">Sell</button>
+            <button type="button" data-val="hold">Hold</button>
+            <button type="button" data-val="sniper">Sniper</button>
+          </div>
+        </div>
+        <div class="menu-item">
+          <button class="menu-trigger" id="signalCoinMenu" type="button">
+            <span class="menu-label">Coin</span>
+            <span id="signalCoinLabel">All Coins</span>
+            <span class="menu-caret">▾</span>
+          </button>
+          <div class="menu-dropdown" id="signalCoinDropdown"></div>
+        </div>
+      </div>
+
+      <div class="filter-chips" id="signalFilters">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="buy">Buy</button>
+        <button class="chip" data-filter="sell">Sell</button>
+        <button class="chip" data-filter="hold">Hold</button>
+        <button class="chip" data-filter="sniper">Sniper</button>
+      </div>
+
+      <div class="signals-list" id="signalsList"></div>
+    </section>
+
+    <!-- ============ TAB: NEWS ============ -->
+    <section class="tab-panel" id="panel-news">
+      <div class="greeting">
+        <h2>Crypto News</h2>
+        <p>Latest headlines from the ecosystem</p>
+      </div>
+
+      <div class="featured-news" id="featuredNews"></div>
+
+      <div class="section-head">
+        <h3>Latest Headlines</h3>
+        <div class="news-cats" id="newsCats">
+          <button class="chip active" data-cat="all">All</button>
+          <button class="chip" data-cat="Market">Market</button>
+          <button class="chip" data-cat="Regulation">Regulation</button>
+          <button class="chip" data-cat="Tech">Tech</button>
+          <button class="chip" data-cat="Adoption">Adoption</button>
+        </div>
+      </div>
+
+      <div class="news-list" id="newsList"></div>
+    </section>
+
+    <!-- ============ TAB: CHART ============ -->
+    <section class="tab-panel" id="panel-chart">
+      <div class="greeting">
+        <h2>Price Charts</h2>
+        <p>Technical analysis view</p>
+      </div>
+
+      <!-- Coin selector -->
+      <div class="chart-coins" id="chartCoins"></div>
+
+      <!-- Chart card -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div class="chart-coin-info" id="chartCoinInfo"></div>
+          <div class="tf-select" id="tfSelect">
+            <button class="tf-btn" data-tf="1m">1m</button>
+            <button class="tf-btn" data-tf="3m">3m</button>
+            <button class="tf-btn" data-tf="5m">5m</button>
+            <button class="tf-btn" data-tf="15m">15m</button>
+            <button class="tf-btn" data-tf="30m">30m</button>
+            <button class="tf-btn" data-tf="1hr">1hr</button>
+            <button class="tf-btn" data-tf="4hr">4hr</button>
+            <button class="tf-btn active" data-tf="1d">1d</button>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chartWrap"></div>
+        <div class="chart-legend">
+          <span><i class="dot up"></i> Bullish</span>
+          <span><i class="dot down"></i> Bearish</span>
+          <span>Timeframe: <strong id="chartTfLabel">1d</strong></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ BOTTOM NAV ============ -->
+  <nav class="bottom-nav">
+    <div class="nav-indicator"></div>
+    <button class="nav-btn active" data-tab="home">
+      <svg viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-btn" data-tab="watchlist">
+      <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+      <span>Watchlist</span>
+    </button>
+    <button class="nav-btn" data-tab="chart">
+      <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+      <span>Chart</span>
+    </button>
+    <button class="nav-btn" data-tab="signals">
+      <svg viewBox="0 0 24 24"><path d="M5 20v-6M12 20V4M19 20v-10"/></svg>
+      <span>Signals</span>
+    </button>
+    <button class="nav-btn" data-tab="news">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v14H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      <span>News</span>
+    </button>
+  </nav>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
+
