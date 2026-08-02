@@ -247,7 +247,14 @@ const LIVE_REFRESH_MS = 1000;
 let liveTimer = null;
 let liveRequest = null;
 
-async function fetchLivePrices() {
+async function renderSourceStatus(payload) {
+  const el = $('#sourceStatus');
+  if (!el) return;
+  const active = Object.entries(payload.sources || {}).filter(([, available]) => available).map(([name]) => name);
+  el.textContent = active.length ? `LIVE · ${active.map(name => name === 'coinpaprika' ? 'CoinPaprika' : name === 'coingecko' ? 'CoinGecko' : name[0].toUpperCase() + name.slice(1)).join(' + ')}` : 'LIVE · NO SOURCES';
+}
+
+function fetchLivePrices() {
   if (liveRequest) return liveRequest;
   liveRequest = fetch(LIVE_PRICE_URL, { headers: { Accept: 'application/json' } })
     .then(response => {
@@ -255,6 +262,7 @@ async function fetchLivePrices() {
       return response.json();
     })
     .then(payload => {
+      renderSourceStatus(payload);
       const byId = Object.fromEntries(payload.data.map(ticker => [ticker.id, ticker]));
       COINS.forEach(coin => {
         const ticker = byId[COINPAPRIKA_IDS[coin.sym]];
@@ -269,7 +277,7 @@ async function fetchLivePrices() {
       renderSignals();
       renderChartCoins();
       renderChart();
-      return tickers;
+      return payload;
     })
     .catch(error => {
       console.warn('Live market data unavailable; keeping the last known prices.', error);
