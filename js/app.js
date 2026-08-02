@@ -279,6 +279,10 @@ let liveRequest = null;
 let scanRequest = null;
 let scanTimer = null;
 let chartScans = {};
+let tvChart = null;
+let tvCandleSeries = null;
+let tvVolumeSeries = null;
+let tvChartKey = '';
 
 async function fetchChartScans() {
   if (scanRequest) return scanRequest;
@@ -397,65 +401,62 @@ function generateCandles(sym, tf, count = 40) {
 function renderChart() {
   const coin = getCoin(chartCoin);
   const candles = generateCandles(chartCoin, chartTF);
-  const W = 560, H = 220, PAD = 8;
-  const highs = candles.map(c => c.high);
-  const lows = candles.map(c => c.low);
-  const max = Math.max(...highs);
-  const min = Math.min(...lows);
-  const range = max - min || 1;
-  const step = (W - PAD * 2) / candles.length;
-  const bodyW = Math.max(3, step * 0.55);
+  if (!coin || !candles.length) return;
 
-  const y = v => PAD + (max - v) / range * (H - PAD * 2);
-  const x = i => PAD + i * step + step / 2;
-
-  const gridLines = [];
-  for (let g = 0; g <= 4; g++) {
-    const gy = PAD + (H - PAD * 2) * g / 4;
-    const price = max - range * g / 4;
-    gridLines.push(`<line x1="${PAD}" y1="${gy}" x2="${W - PAD}" y2="${gy}" stroke="rgba(255,255,255,0.06)"/>`);
-    gridLines.push(`<text x="${W - PAD}" y="${gy - 3}" fill="rgba(148,163,184,0.6)" font-size="9" text-anchor="end">${fmtPrice(price)}</text>`);
-  }
-
-  let rects = '';
-  let wicks = '';
-  let lastClose = candles[candles.length - 1].close;
-  candles.forEach((c, i) => {
-    const up = c.close >= c.open;
-    const color = up ? '#22c55e' : '#ef4444';
-    const cx = x(i);
-    const top = Math.min(y(c.open), y(c.close));
-    const bh = Math.max(2, Math.abs(y(c.close) - y(c.open)));
-    rects += `<rect x="${cx - bodyW / 2}" y="${top}" width="${bodyW}" height="${bh}" rx="${Math.min(2, bodyW / 3)}" fill="${color}"/>`;
-    wicks += `<line x1="${cx}" y1="${y(c.high)}" x2="${cx}" y2="${y(c.low)}" stroke="${color}" stroke-width="1"/>`;
-  });
-
-  const first = candles[0].open;
-  lastClose = coin.price;
-  const pct = coin.change || ((lastClose - first) / first * 100);
+  const pct = coin.change || 0;
   const pctColor = pct >= 0 ? 'var(--green)' : 'var(--red)';
   const coinInfo = `
     <div class="chart-coin-name">${coinIcon(coin)}<span>${coin.name}</span><span class="coin-sym">${coin.sym}</span></div>
-    <div class="chart-coin-price" style="color:${pctColor}">${fmtPrice(lastClose)}</div>
+    <div class="chart-coin-price" style="color:${pctColor}">${fmtPrice(coin.price)}</div>
     <div class="chart-coin-change ${changeColorClass(pct)}">${changeArrow(pct)} ${Math.abs(pct).toFixed(2)}%</div>`;
-
   $('#chartCoinInfo').innerHTML = coinInfo;
-  $('#chartTfLabel').textContent = chartTF;
-  $('#chartWrap').innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="chartBg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="rgba(109,92,255,0.12)"/>
-          <stop offset="100%" stop-color="rgba(109,92,255,0)"/>
-        </linearGradient>
-      </defs>
-      ${gridLines.join('')}
-      <rect x="${PAD}" y="${PAD}" width="${W - PAD * 2}" height="${H - PAD * 2}" fill="url(#chartBg)" opacity="0.6"/>
-      ${wicks}
-      ${rects}
-    </svg>`;
-}
+  $('#chartTfLabel').textContent = `${chartTF} · TradingView`;
 
+  const chartKey = `${chartCoin}:${chartTF}`;
+  if (!window.LightweightCharts) {
+    $('#chartWrap').innerHTML = '<div class="chart-loading">TradingView chart library loading…</div>';
+    return;
+  }
+  if (!tvChart || tvChartKey !== chartKey || !document.querySelector('#tvChart')) {
+    $('#chartWrap').innerHTML = '<div id="tvChart" style="width:100%;height:220px"></div>';
+    const el = $('#tvChart');
+    tvChart = LightweightCharts.createChart(el, {
+      width: el.clientWidth || 560,
+      height: 220,
+      layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#94a3b8' },
+      grid: { vertLines: { color: 'rgba(148,163,184,0.07)' }, horzLines: { color: 'rgba(148,163,184,0.07)' } },
+      rightPriceScale: { borderColor: 'rgba(148,163,184,0.18)' },
+      timeScale: { borderColor: 'rgba(148,163,184,0.18)', timeVisible: true, secondsVisible: false },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    });
+    tvCandleSeries = tvChart.addCandlestickSeries({
+      upColor: '#22c55e', downColor: '#ef4444', borderVisible: false,
+      wickUpColor: '#22c55e', wickDownColor: '#ef4444',
+    });
+    tvVolumeSeries = tvChart.addHistogramSeries({
+      color: 'rgba(109,92,255,0.45)', priceFormat: { type: 'volume' }, priceScaleId: '',
+    });
+    tvChart.priceScale('').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    tvChartKey = chartKey;
+    new ResizeObserver(() => { if (tvChart && el.clientWidth) tvChart.applyOptions({ width: el.clientWidth }); }).observe(el);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const data = candles.map((c, i) => ({
+    time: Number.isFinite(c.time) ? Math.floor(c.time / 1000) : now - (candles.length - i) * 3600,
+    open: c.open, high: c.high, low: c.low, close: c.close,
+  }));
+  const volume = candles.map((c, i) => ({
+    time: data[i].time, value: Number(c.volume || 0), color: c.close >= c.open ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
+  }));
+  // CMP is the live market price; update the latest candle close so the chart and Signal card match.
+  data[data.length - 1].close = coin.price;
+  data[data.length - 1].high = Math.max(data[data.length - 1].high, coin.price);
+  data[data.length - 1].low = Math.min(data[data.length - 1].low, coin.price);
+  tvCandleSeries.setData(data);
+  tvVolumeSeries.setData(volume);
+  tvChart.timeScale().fitContent();
+}
 function renderChartCoins() {
   $('#chartCoins').innerHTML = COINS.map(c => `
     <button class="coin-chip ${c.sym === chartCoin ? 'active' : ''}" data-coin="${c.sym}">${c.sym}</button>
