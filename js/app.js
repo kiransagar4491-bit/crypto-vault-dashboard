@@ -242,7 +242,7 @@ const COINPAPRIKA_IDS = {
   XRP: 'xrp-xrp', ADA: 'ada-cardano', AVAX: 'avax-avalanche', DOGE: 'doge-dogecoin',
   DOT: 'dot-polkadot-token', LINK: 'link-chainlink', MATIC: 'pol-polygon-ecosystem-token', SHIB: 'shib-shiba-inu'
 };
-const LIVE_PRICE_URL = 'https://api.coinpaprika.com/v1/tickers?quotes=USD';
+const LIVE_PRICE_URL = 'https://koda-b1059638.base44.app/functions/getCryptoMarketData';
 const LIVE_REFRESH_MS = 1000;
 let liveTimer = null;
 let liveRequest = null;
@@ -254,13 +254,13 @@ async function fetchLivePrices() {
       if (!response.ok) throw new Error(`Market API returned ${response.status}`);
       return response.json();
     })
-    .then(tickers => {
-      const byId = Object.fromEntries(tickers.map(ticker => [ticker.id, ticker]));
+    .then(payload => {
+      const byId = Object.fromEntries(payload.data.map(ticker => [ticker.id, ticker]));
       COINS.forEach(coin => {
-        const quote = byId[COINPAPRIKA_IDS[coin.sym]]?.quotes?.USD;
-        if (!quote || typeof quote.price !== 'number') return;
-        coin.price = quote.price;
-        if (typeof quote.percent_change_24h === 'number') coin.change = quote.percent_change_24h;
+        const ticker = byId[COINPAPRIKA_IDS[coin.sym]];
+        if (!ticker || typeof ticker.price !== 'number') return;
+        coin.price = ticker.price;
+        if (typeof ticker.percent_change_24h === 'number') coin.change = ticker.percent_change_24h;
       });
       renderMarketList(currentMarketFilter);
       renderFeatured();
