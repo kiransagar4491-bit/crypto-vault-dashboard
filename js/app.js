@@ -240,7 +240,7 @@ function setActiveTab(tab) {
 const COINGECKO_IDS = {
   BTC: 'bitcoin', ETH: 'ethereum', BNB: 'binancecoin', SOL: 'solana',
   XRP: 'ripple', ADA: 'cardano', AVAX: 'avalanche-2', DOGE: 'dogecoin',
-  DOT: 'polkadot', LINK: 'chainlink', MATIC: 'matic-network', SHIB: 'shiba-inu'
+  DOT: 'polkadot', LINK: 'chainlink', MATIC: 'polygon-ecosystem-token', SHIB: 'shiba-inu'
 };
 const LIVE_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price';
 const LIVE_REFRESH_MS = 60000;
