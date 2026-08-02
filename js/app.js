@@ -264,7 +264,10 @@ function thumbBg(cat) {
 }
 
 /* ---------- Tab navigation ---------- */
+const VALID_TABS = ['home', 'watchlist', 'signals', 'news', 'chart'];
+
 function setActiveTab(tab) {
+  if (!VALID_TABS.includes(tab)) tab = 'home';
   activeTab = tab;
   $$('.tab-panel').forEach(p => p.classList.remove('active'));
   $('#panel-' + tab).classList.add('active');
@@ -275,8 +278,12 @@ function setActiveTab(tab) {
 
   const indicator = $('.nav-indicator');
   const btn = btns[idx];
-  const center = btn.offsetLeft + btn.offsetWidth / 2 - indicator.offsetWidth / 2;
-  indicator.style.left = center + 'px';
+  if (btn) {
+    const center = btn.offsetLeft + btn.offsetWidth / 2 - indicator.offsetWidth / 2;
+    indicator.style.left = center + 'px';
+  }
+  // update hash so #signals etc. can deep-link to a tab
+  if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
 }
 
 /* ---------- Simulated live price updates ---------- */
@@ -616,7 +623,16 @@ function init() {
   renderNews();
   renderChartCoins();
   renderChart();
-  setActiveTab('home');
+
+  // Deep-link: open the tab from URL hash (e.g. #signals, #home, #news)
+  const initialTab = (location.hash || '#home').slice(1);
+  setActiveTab(initialTab);
+
+  // Support hash changes for direct tab navigation
+  window.addEventListener('hashchange', () => {
+    setActiveTab((location.hash || '#home').slice(1));
+  });
+
   startLiveUpdates();
   window.addEventListener('resize', () => {
     // re-align indicator on resize
