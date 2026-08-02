@@ -195,6 +195,7 @@ function renderSignals() {
             </div>
           </div>
           <div class="signal-price-row">
+            <span>CMP <strong>${fmtPrice(coin.price)}</strong></span>
             <span>Entry <strong>${fmtPrice(s.entry)}</strong></span>
             <span>Target <strong class="${s.action === 'buy' ? 'up' : 'down'}">${fmtPrice(s.target)}</strong></span>
             <span>Stop <strong class="${s.action === 'buy' ? 'down' : 'up'}">${fmtPrice(s.stop)}</strong></span>
