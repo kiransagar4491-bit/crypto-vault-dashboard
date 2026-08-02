@@ -155,7 +155,14 @@ function deriveLiveSignals() {
 }
 
 function renderSignals() {
-  const liveSignals = deriveLiveSignals();
+  const scannedSignals = Object.values(chartScans);
+  const liveSignals = scannedSignals.length ? scannedSignals.map(scan => {
+    const coin = getCoin(scan.symbol);
+    const direction = scan.action === 'sell' ? -1 : 1;
+    const move = Math.min(0.06, Math.max(0.008, Math.abs(scan.percent_change_24h || 0) / 100 * 1.5));
+    const risk = Math.min(0.035, Math.max(0.004, move * 0.55));
+    return { sym: scan.symbol, action: scan.action, entry: scan.price, target: scan.price * (1 + direction * move), stop: scan.price * (1 - direction * risk), strength: scan.confidence, indicator: scan.indicator, tf: '1h', coin };
+  }) : deriveLiveSignals();
   const list = liveSignals.filter(s => signalFilter === 'all' || s.action === signalFilter);
   const buys = liveSignals.filter(s => s.action === 'buy').length;
   const sells = liveSignals.filter(s => s.action === 'sell').length;
@@ -264,9 +271,34 @@ const COINPAPRIKA_IDS = {
   DOT: 'dot-polkadot-token', LINK: 'link-chainlink', POL: 'pol-polygon-ecosystem-token', SHIB: 'shib-shiba-inu'
 };
 const LIVE_PRICE_URL = 'https://koda-b1059638.base44.app/functions/getCryptoMarketData';
+const CHART_SCAN_URL = 'https://koda-b1059638.base44.app/functions/scanCryptoCharts';
 const LIVE_REFRESH_MS = 1000;
 let liveTimer = null;
 let liveRequest = null;
+let scanRequest = null;
+let scanTimer = null;
+let chartScans = {};
+
+async function fetchChartScans() {
+  if (scanRequest) return scanRequest;
+  scanRequest = fetch(CHART_SCAN_URL, { headers: { Accept: 'application/json' } })
+    .then(response => {
+      if (!response.ok) throw new Error(`Chart scanner returned ${response.status}`);
+      return response.json();
+    })
+    .then(payload => {
+      chartScans = Object.fromEntries(payload.data.map(scan => [scan.symbol, scan]));
+      renderSignals();
+      renderChart();
+      return payload;
+    })
+    .catch(error => {
+      console.warn('Chart scanner unavailable; keeping the latest scan.', error);
+      return null;
+    })
+    .finally(() => { scanRequest = null; });
+  return scanRequest;
+}
 
 async function renderSourceStatus(payload) {
   const el = $('#sourceStatus');
@@ -311,8 +343,11 @@ function fetchLivePrices() {
 
 function startLiveUpdates() {
   if (liveTimer) clearInterval(liveTimer);
+  if (scanTimer) clearInterval(scanTimer);
   fetchLivePrices();
+  fetchChartScans();
   liveTimer = setInterval(fetchLivePrices, LIVE_REFRESH_MS);
+  scanTimer = setInterval(fetchChartScans, 15000);
 }
 
 let currentMarketFilter = 'all';
@@ -328,6 +363,8 @@ function scopedRand(seed) {
 }
 
 function generateCandles(sym, tf, count = 40) {
+  const scannedCandles = chartScans[sym]?.candles;
+  if (scannedCandles?.length) return scannedCandles.slice(-count);
   const coin = getCoin(sym);
   const base = coin.price;
   const seed = sym.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) + tf.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0);
