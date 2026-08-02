@@ -19,20 +19,6 @@ const COINS = [
   { rank: 12, sym: 'SHIB', name: 'Shiba Inu', price: 0.0000245, change: 6.33, icon: '🐕', color: '#e6432d' },
 ];
 
-/* ---------- Signals dataset ---------- */
-const SIGNALS = [
-  { coin: 'BTC', type: 'buy', title: 'Strong Buy — Bitcoin', sub: 'Bullish breakout above $68k resistance', conf: 87 },
-  { coin: 'SOL', type: 'buy', title: 'Buy — Solana', sub: 'Momentum shift, volume spike detected', conf: 82 },
-  { coin: 'ETH', type: 'hold', title: 'Hold — Ethereum', sub: 'Range-bound, wait for direction', conf: 64 },
-  { coin: 'DOGE', type: 'sell', title: 'Sell — Dogecoin', sub: 'Overbought RSI, profit taking expected', conf: 71 },
-  { coin: 'BNB', type: 'hold', title: 'Hold — BNB', sub: 'Consolidation phase, support holding', conf: 58 },
-  { coin: 'LINK', type: 'buy', title: 'Buy — Chainlink', sub: 'Breakout from falling wedge pattern', conf: 78 },
-  { coin: 'AVAX', type: 'sell', title: 'Sell — Avalanche', sub: 'Weakness on higher timeframe', conf: 66 },
-  { coin: 'ADA', type: 'hold', title: 'Hold — Cardano', sub: 'Awaiting catalyst, low volatility', conf: 52 },
-  { coin: 'SOL', type: 'sniper', title: 'SNIPER — Solana', sub: 'Liquidity sweep + reversal, high-prob entry', conf: 91 },
-  { coin: 'LINK', type: 'sniper', title: 'SNIPER — Chainlink', sub: 'Order-block rejection, quick scalp setup', conf: 88 },
-];
-
 /* ---------- News dataset ---------- */
 const NEWS = [
   { title: 'Bitcoin ETF inflows hit $1.2B weekly record as institutional demand surges', cat: 'Market', time: '2h ago', emoji: '📈' },
@@ -45,11 +31,21 @@ const NEWS = [
   { title: 'Top bank launches institutional crypto custody service in 12 countries', cat: 'Adoption', time: '18h ago', emoji: '🏦' },
 ];
 
+/* ---------- Signals dataset ---------- */
+const SIGNALS = [
+  { sym: 'BTC', action: 'buy', entry: 67200, target: 72300, stop: 65200, strength: 88, indicator: 'RSI + MACD', tf: '4h' },
+  { sym: 'SOL', action: 'buy', entry: 171.2, target: 192.5, stop: 164.8, strength: 84, indicator: 'Breakout', tf: '1d' },
+  { sym: 'DOGE', action: 'buy', entry: 0.1501, target: 0.1740, stop: 0.1432, strength: 79, indicator: 'Volume Surge', tf: '1hr' },
+  { sym: 'LINK', action: 'buy', entry: 14.85, target: 16.90, stop: 14.20, strength: 77, indicator: 'Golden Cross', tf: '1d' },
+  { sym: 'BNB', action: 'buy', entry: 594, target: 628, stop: 581, strength: 74, indicator: 'Support Hold', tf: '1d' },
+  { sym: 'ETH', action: 'sell', entry: 3568, target: 3380, stop: 3645, strength: 81, indicator: 'Overbought', tf: '4h' },
+  { sym: 'ADA', action: 'sell', entry: 0.4612, target: 0.4280, stop: 0.4740, strength: 76, indicator: 'Death Cross', tf: '1d' },
+  { sym: 'AVAX', action: 'sell', entry: 37.20, target: 34.10, stop: 38.55, strength: 72, indicator: 'Resistance', tf: '1hr' },
+];
+
 /* ---------- State ---------- */
-let watchlist = ['BTC', 'ETH', 'SOL'];
 let activeTab = 'home';
 let signalFilter = 'all';
-let signalCoin = 'all';
 let newsFilter = 'all';
 let searchOpen = false;
 let chartCoin = 'BTC';
@@ -122,7 +118,6 @@ function renderMarketList(filter = 'all') {
         <div class="coin-price">${fmtPrice(c.price)}</div>
         <div class="coin-change ${changeColorClass(c.change)}">${changeArrow(c.change)} ${Math.abs(c.change).toFixed(2)}%</div>
       </div>
-      <button class="star-btn ${watchlist.includes(c.sym) ? 'active' : ''}" data-star="${c.sym}">★</button>
     </div>
   `).join('');
 }
@@ -139,99 +134,54 @@ function renderFeatured() {
   `).join('');
 }
 
-function renderWatchlist() {
-  const el = $('#watchlist');
-  const empty = $('#watchEmpty');
-  if (!watchlist.length) {
-    el.innerHTML = '';
-    empty.classList.add('show');
-    return;
-  }
-  empty.classList.remove('show');
-  el.innerHTML = watchlist.map(sym => {
-    const c = getCoin(sym);
-    if (!c) return '';
-    return `
-      <div class="coin-row" data-sym="${c.sym}">
-        ${coinIcon(c)}
-        <div class="coin-info">
-          <div class="coin-name">${c.name} <span class="coin-sym">${c.sym}</span></div>
-          <div class="coin-price-sub">In watchlist</div>
-        </div>
-        ${sparkline(c.sym, c.change)}
-        <div class="coin-price-col">
-          <div class="coin-price">${fmtPrice(c.price)}</div>
-          <div class="coin-change ${changeColorClass(c.change)}">${changeArrow(c.change)} ${Math.abs(c.change).toFixed(2)}%</div>
-        </div>
-        <button class="star-btn active" data-remove="${c.sym}">✕</button>
-      </div>
-    `;
-  }).join('');
-}
-
 function renderSignals() {
-  const list = SIGNALS.filter(s =>
-    (signalFilter === 'all' || s.type === signalFilter) &&
-    (signalCoin === 'all' || s.coin === signalCoin)
-  );
-  $('#signalsList').innerHTML = list.length ? list.map(s => {
-    const c = getCoin(s.coin);
-    const confColor = s.type === 'buy' ? 'buy' : s.type === 'sell' ? 'sell' : s.type === 'sniper' ? 'sniper' : 'hold';
-    const barColor = s.type === 'buy' ? 'linear-gradient(90deg,#16a34a,#22c55e)' : s.type === 'sell' ? 'linear-gradient(90deg,#dc2626,#ef4444)' : s.type === 'sniper' ? 'linear-gradient(90deg,#db2777,#ec4899)' : 'linear-gradient(90deg,#d97706,#f59e0b)';
+  const list = SIGNALS.filter(s => signalFilter === 'all' || s.action === signalFilter);
+  const buys = SIGNALS.filter(s => s.action === 'buy').length;
+  const sells = SIGNALS.filter(s => s.action === 'sell').length;
+  const avgStrength = Math.round(SIGNALS.reduce((a, s) => a + s.strength, 0) / SIGNALS.length);
+
+  $('#signalHero').innerHTML = `
+    <div class="signal-hero-top">
+      <div class="signal-hero-title">⚡ Signal Engine</div>
+      <span class="signal-badge live">LIVE</span>
+    </div>
+    <p>${SIGNALS.length} active setups · ${avgStrength}% avg confidence. Updated in real time.</p>
+    <div class="signal-meta">
+      <span>🟢 ${buys} Buy</span>
+      <span>🔴 ${sells} Sell</span>
+      <span>📶 Avg ${avgStrength}%</span>
+    </div>
+  `;
+
+  $('#signalList').innerHTML = list.map(s => {
+    const coin = getCoin(s.sym);
+    const strengthColor = s.action === 'buy' ? 'var(--green)' : 'var(--red)';
     return `
-      <div class="signal-card" data-type="${s.type}">
-        ${coinIcon(c)}
-        <div class="signal-badge ${s.type}">${s.type.toUpperCase()}</div>
-        <div class="signal-info">
-          <div class="signal-title">${s.title}</div>
-          <div class="signal-sub">${s.sub}</div>
+      <div class="signal-card" data-sym="${s.sym}">
+        <div class="signal-card-left">
+          <div class="signal-card-head">
+            ${coinIcon(coin)}
+            <div>
+              <div class="coin-name">${coin.name} <span class="coin-sym">${coin.sym}</span></div>
+              <div class="signal-indicator">${s.indicator} · ${s.tf}</div>
+            </div>
+          </div>
+          <div class="signal-price-row">
+            <span>Entry <strong>${fmtPrice(s.entry)}</strong></span>
+            <span>Target <strong class="${s.action === 'buy' ? 'up' : 'down'}">${fmtPrice(s.target)}</strong></span>
+            <span>Stop <strong class="${s.action === 'buy' ? 'down' : 'up'}">${fmtPrice(s.stop)}</strong></span>
+          </div>
         </div>
-        <div class="signal-conf">
-          <div class="conf-label">Confidence</div>
-          <div class="conf-val ${confColor}">${s.conf}%</div>
-          <div class="signal-bar"><span style="width:${s.conf}%;background:${barColor}"></span></div>
+        <div class="signal-card-right">
+          <span class="signal-badge ${s.action}">${s.action.toUpperCase()}</span>
+          <div class="signal-strength">
+            <span>${s.strength}%</span>
+            <div class="signal-strength-bar"><i style="width:${s.strength}%;background:${strengthColor}"></i></div>
+          </div>
         </div>
       </div>
     `;
-  }).join('') : '<p class="empty-note show" style="text-align:center">No signals match your filters.</p>';
-}
-
-function renderSignalCoinMenu() {
-  const coins = [...new Set(SIGNALS.map(s => s.coin))];
-  $('#signalCoinDropdown').innerHTML = `
-    <button type="button" data-val="all" class="${signalCoin === 'all' ? 'active' : ''}">All Coins</button>
-    ${coins.map(c => `
-      <button type="button" data-val="${c}" class="${signalCoin === c ? 'active' : ''}">${getCoin(c) ? getCoin(c).name : c} (${c})</button>
-    `).join('')}
-  `;
-}
-
-function syncSignalLabels() {
-  const typeMap = { all: 'All Types', buy: 'Buy', sell: 'Sell', hold: 'Hold', sniper: 'Sniper' };
-  $('#signalTypeLabel').textContent = typeMap[signalFilter] || signalFilter;
-  $('#signalCoinLabel').textContent = signalCoin === 'all' ? 'All Coins' : signalCoin;
-}
-
-function toggleSignalMenu(id) {
-  const trigger = $('#' + id);
-  const menuItem = trigger.closest('.menu-item');
-  const dropdown = menuItem.querySelector('.menu-dropdown');
-  const isOpen = menuItem.classList.contains('open');
-  // close the other one
-  $$('.signal-top-menu .menu-item').forEach(mi => {
-    mi.classList.remove('open');
-    mi.querySelector('.menu-dropdown').classList.remove('open');
-  });
-  if (!isOpen) {
-    menuItem.classList.add('open');
-    dropdown.classList.add('open');
-  }
-}
-function closeSignalMenus() {
-  $$('.signal-top-menu .menu-item').forEach(mi => {
-    mi.classList.remove('open');
-    mi.querySelector('.menu-dropdown').classList.remove('open');
-  });
+  }).join('') || '<p class="empty-note show">No signals in this filter.</p>';
 }
 
 function renderNews() {
@@ -264,7 +214,7 @@ function thumbBg(cat) {
 }
 
 /* ---------- Tab navigation ---------- */
-const VALID_TABS = ['home', 'watchlist', 'signals', 'news', 'chart'];
+const VALID_TABS = ['home', 'chart', 'signal', 'news'];
 
 function setActiveTab(tab) {
   if (!VALID_TABS.includes(tab)) tab = 'home';
@@ -282,7 +232,7 @@ function setActiveTab(tab) {
     const center = btn.offsetLeft + btn.offsetWidth / 2 - indicator.offsetWidth / 2;
     indicator.style.left = center + 'px';
   }
-  // update hash so #signals etc. can deep-link to a tab
+  // update hash so #home etc. can deep-link to a tab
   if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
 }
 
@@ -298,7 +248,7 @@ function startLiveUpdates() {
     });
     renderMarketList(currentMarketFilter);
     renderFeatured();
-    renderWatchlist();
+    renderSignals();
   }, 4000);
 }
 
@@ -322,14 +272,18 @@ function generateCandles(sym, tf, count = 40) {
   const volatility = base * (tf === '1d' ? 0.006 : 0.003);
   const candles = [];
   let prevClose = base * (1 - 0.03 + rnd() * 0.06);
+  let prevVol = base * 900;
   for (let i = 0; i < count; i++) {
     const drift = (rnd() - 0.5) * 2 * volatility * 0.6;
     const open = prevClose;
     const close = open + drift + (rnd() - 0.5) * volatility;
     const high = Math.max(open, close) + rnd() * volatility * 0.6;
     const low = Math.min(open, close) - rnd() * volatility * 0.6;
-    candles.push({ open, close, high, low });
+    const volFactor = 0.55 + rnd() * 0.9;
+    const volume = Math.round(Math.max(prevVol * volFactor, base * 60));
+    candles.push({ open, close, high, low, volume });
     prevClose = close;
+    prevVol = volume;
   }
   return candles;
 }
@@ -430,21 +384,13 @@ function runSearch(q) {
     : '<p style="color:var(--text-dim);font-size:13px;padding:8px">No coins found.</p>';
 }
 
-/* ---------- Watchlist helpers ---------- */
-function addToWatch(sym) {
-  if (!sym) return;
-  const upper = sym.trim().toUpperCase();
-  if (watchlist.includes(upper)) return;
-  if (COINS.find(c => c.sym === upper)) {
-    watchlist.push(upper);
-    renderWatchlist();
-    renderMarketList(currentMarketFilter);
-  }
-}
-function removeFromWatch(sym) {
-  watchlist = watchlist.filter(s => s !== sym);
-  renderWatchlist();
-  renderMarketList(currentMarketFilter);
+/* ---------- Chart navigation helper ---------- */
+function openChartForCoin(sym) {
+  if (!getCoin(sym)) return;
+  chartCoin = sym;
+  renderChartCoins();
+  renderChart();
+  setActiveTab('chart');
 }
 
 /* ---------- Event wiring ---------- */
@@ -454,34 +400,28 @@ function initEvents() {
     btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
   });
 
-  // Market list + featured click → add to watchlist if not there
+  // Coin rows, featured cards and signal cards → open Chart tab for that coin
   document.addEventListener('click', e => {
-    const star = e.target.closest('[data-star]');
-    if (star) {
-      const sym = star.dataset.star;
-      if (watchlist.includes(sym)) removeFromWatch(sym);
-      else addToWatch(sym);
-      return;
-    }
-    const remove = e.target.closest('[data-remove]');
-    if (remove) {
-      removeFromWatch(remove.dataset.remove);
-      return;
-    }
     const row = e.target.closest('.coin-row');
     if (row && row.dataset.sym) {
-      addToWatch(row.dataset.sym);
+      openChartForCoin(row.dataset.sym);
+      return;
     }
     const featured = e.target.closest('.featured-card');
     if (featured && featured.dataset.sym) {
-      addToWatch(featured.dataset.sym);
+      openChartForCoin(featured.dataset.sym);
+      return;
+    }
+    const signal = e.target.closest('.signal-card');
+    if (signal && signal.dataset.sym) {
+      openChartForCoin(signal.dataset.sym);
     }
   });
 
   // Segmented filter (market)
-  $$('.seg-btn').forEach(btn => {
+  $$('#marketFilter .seg-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      $$('.seg-btn').forEach(b => b.classList.remove('active'));
+      $$('#marketFilter .seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const label = btn.textContent.toLowerCase();
       currentMarketFilter = label === 'gainers' ? 'gainers' : label === 'losers' ? 'losers' : 'all';
@@ -489,61 +429,16 @@ function initEvents() {
     });
   });
 
-  // Watchlist add
-  $('#btnAddWatch').addEventListener('click', () => {
-    addToWatch($('#watchInput').value);
-    $('#watchInput').value = '';
-  });
-  $('#watchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      addToWatch($('#watchInput').value);
-      $('#watchInput').value = '';
-    }
-  });
-
-  // Signal filters
-  $$('#signalFilters .chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      $$('#signalFilters .chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      signalFilter = chip.dataset.filter;
-      syncSignalLabels();
+  // Segmented filter (signals)
+  $$('#signalFilter .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#signalFilter .seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const label = btn.textContent.toLowerCase();
+      signalFilter = label === 'buy' ? 'buy' : label === 'sell' ? 'sell' : 'all';
       renderSignals();
     });
   });
-
-  // Signal top menu dropdowns
-  $('#signalTypeMenu').addEventListener('click', e => {
-    e.stopPropagation();
-    toggleSignalMenu('signalTypeMenu');
-  });
-  $('#signalCoinMenu').addEventListener('click', e => {
-    e.stopPropagation();
-    toggleSignalMenu('signalCoinMenu');
-  });
-
-  $('#signalTypeDropdown').addEventListener('click', e => {
-    const btn = e.target.closest('[data-val]');
-    if (!btn) return;
-    signalFilter = btn.dataset.val;
-    // sync chips
-    $$('#signalFilters .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === signalFilter));
-    syncSignalLabels();
-    renderSignals();
-    closeSignalMenus();
-  });
-
-  $('#signalCoinDropdown').addEventListener('click', e => {
-    const btn = e.target.closest('[data-val]');
-    if (!btn) return;
-    signalCoin = btn.dataset.val;
-    renderSignalCoinMenu();
-    syncSignalLabels();
-    renderSignals();
-    closeSignalMenus();
-  });
-
-  document.addEventListener('click', closeSignalMenus);
 
   // News filters
   $$('#newsCats .chip').forEach(chip => {
@@ -586,14 +481,14 @@ function initEvents() {
   $('#searchResults').addEventListener('click', e => {
     const item = e.target.closest('.search-item');
     if (item) {
-      addToWatch(item.dataset.sym);
       closeSearch();
+      openChartForCoin(item.dataset.sym);
     }
   });
 
   // Alert button toast
   $('#btnAlert').addEventListener('click', () => {
-    showToast('🔔 No active alerts. Add coins to your watchlist to get price alerts!');
+    showToast('🔔 No active alerts. Check the Signal tab for live trade setups!');
   });
 }
 
@@ -616,15 +511,12 @@ function init() {
   initEvents();
   renderMarketList('all');
   renderFeatured();
-  renderWatchlist();
   renderSignals();
-  renderSignalCoinMenu();
-  syncSignalLabels();
   renderNews();
   renderChartCoins();
   renderChart();
 
-  // Deep-link: open the tab from URL hash (e.g. #signals, #home, #news)
+  // Deep-link: open the tab from URL hash (e.g. #home, #news)
   const initialTab = (location.hash || '#home').slice(1);
   setActiveTab(initialTab);
 

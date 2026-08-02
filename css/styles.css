@@ -333,90 +333,8 @@ body {
 .empty-note.show { display: block; }
 
 /* ==========================================================
-   SIGNALS TAB
+   FILTER CHIPS
    ========================================================== */
-.signal-top-menu {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.menu-item { position: relative; flex: 1; }
-
-.menu-trigger {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
-.menu-trigger:hover {
-  color: #fff;
-  background: var(--card-hover);
-  border-color: rgba(109, 92, 255, 0.5);
-  transform: translateY(-1px);
-}
-.menu-trigger .menu-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-dim);
-}
-.menu-trigger #signalTypeLabel, .menu-trigger #signalCoinLabel { margin-left: auto; font-weight: 700; color: var(--text); }
-.menu-caret { color: var(--accent-2); font-size: 10px; transition: transform 0.2s ease; }
-.menu-item.open .menu-caret { transform: rotate(180deg); }
-
-.menu-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 40;
-  background: rgba(17, 24, 39, 0.98);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(109, 92, 255, 0.4);
-  border-radius: 12px;
-  padding: 6px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
-  display: none;
-  max-height: 220px;
-  overflow-y: auto;
-}
-.menu-dropdown.open { display: block; animation: menuIn 0.18s ease; }
-@keyframes menuIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.menu-dropdown button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  background: none;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
-}
-.menu-dropdown button:hover { color: #fff; background: var(--card-hover); transform: translateX(3px); }
-.menu-dropdown button.active { color: #fff; background: rgba(109, 92, 255, 0.22); }
-
-.filter-chips { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
-.filter-chips::-webkit-scrollbar { display: none; }
-
 .chip {
   font-family: var(--font);
   font-size: 12px; font-weight: 600;
@@ -431,49 +349,6 @@ body {
 }
 .chip:hover { color: #fff; background: var(--card-hover); border-color: rgba(109, 92, 255, 0.5); transform: translateY(-1px); }
 .chip.active { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; box-shadow: 0 4px 14px rgba(109, 92, 255, 0.4); }
-
-.signals-list { display: flex; flex-direction: column; gap: 12px; }
-
-.signal-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.signal-card:hover { transform: translateY(-3px); background: var(--card-hover); border-color: rgba(109, 92, 255, 0.5); box-shadow: 0 10px 26px rgba(109, 92, 255, 0.18); }
-
-.signal-badge {
-  width: 46px; height: 46px;
-  border-radius: 50%;
-  display: grid; place-items: center;
-  font-size: 13px; font-weight: 800;
-  flex-shrink: 0;
-  color: #fff;
-}
-.signal-badge.buy { background: linear-gradient(135deg, #16a34a, #22c55e); box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4); }
-.signal-badge.sell { background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); }
-.signal-badge.hold { background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); }
-.signal-badge.sniper { background: linear-gradient(135deg, #db2777, #ec4899); box-shadow: 0 4px 14px rgba(236, 72, 153, 0.45); }
-
-.signal-info { flex: 1; }
-.signal-title { font-size: 14px; font-weight: 700; }
-.signal-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
-
-.signal-conf { text-align: right; }
-.signal-conf .conf-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; }
-.signal-conf .conf-val { font-size: 18px; font-weight: 800; }
-.conf-val.buy { color: var(--green); }
-.conf-val.sell { color: var(--red); }
-.conf-val.hold { color: var(--gold); }
-.conf-val.sniper { color: #ec4899; }
-
-.signal-bar { width: 120px; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: hidden; margin-top: 6px; margin-left: auto; }
-.signal-bar span { display: block; height: 100%; border-radius: 4px; transition: width 0.5s ease; }
 
 /* ==========================================================
    NEWS TAB
@@ -525,6 +400,96 @@ body {
 .news-title { font-size: 13px; font-weight: 600; line-height: 1.45; margin: 6px 0 4px; }
 .news-time { font-size: 11px; color: var(--text-dim); }
 
+/* ==========================================================
+   SIGNALS TAB
+   ========================================================== */
+.signal-hero {
+  background: linear-gradient(135deg, rgba(109, 92, 255, 0.16), rgba(0, 212, 255, 0.12));
+  border: 1px solid rgba(109, 92, 255, 0.28);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.signal-hero-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;
+}
+.signal-hero-title { font-size: 15px; font-weight: 700; }
+.signal-hero p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.signal-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.signal-meta span {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.signal-list { display: flex; flex-direction: column; gap: 10px; }
+
+.signal-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.signal-card:hover {
+  transform: translateY(-3px);
+  background: var(--card-hover);
+  border-color: rgba(109, 92, 255, 0.5);
+  box-shadow: 0 10px 26px rgba(109, 92, 255, 0.2);
+}
+
+.signal-card-left { flex: 1; min-width: 0; }
+.signal-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.signal-card-head .coin-name { font-size: 14px; }
+
+.signal-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.signal-badge.buy { background: rgba(34, 197, 94, 0.16); color: var(--green); }
+.signal-badge.sell { background: rgba(239, 68, 68, 0.16); color: var(--red); }
+.signal-badge.live { background: rgba(245, 158, 11, 0.16); color: var(--gold); }
+
+.signal-indicator { font-size: 11px; color: var(--text-dim); }
+
+.signal-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 122px; }
+.signal-strength { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: flex-end; }
+.signal-strength span { font-size: 11px; font-weight: 700; color: var(--text); }
+.signal-strength-bar {
+  width: 70px; height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.signal-strength-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.signal-price-row { display: flex; gap: 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.signal-price-row strong { color: var(--text); font-weight: 700; }
+.signal-price-row strong.up { color: var(--green); }
+.signal-price-row strong.down { color: var(--red); }
+
+.signal-hero .signal-badge.live { animation: pulse 1.6s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 /* ==========================================================
    CHART TAB
    ========================================================== */
@@ -694,7 +659,6 @@ body {
 }
 
 @media (max-width: 380px) {
-  .signal-bar { width: 80px; }
   .news-thumb { width: 54px; height: 54px; }
 }
 

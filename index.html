@@ -59,7 +59,7 @@
       <!-- Market list -->
       <div class="section-head">
         <h3>Market Overview</h3>
-        <div class="seg">
+        <div class="seg" id="marketFilter">
           <button class="seg-btn active">All</button>
           <button class="seg-btn">Gainers</button>
           <button class="seg-btn">Losers</button>
@@ -76,64 +76,25 @@
       <div class="featured-row" id="featuredRow"></div>
     </section>
 
-    <!-- ============ TAB: WATCHLIST ============ -->
-    <section class="tab-panel" id="panel-watchlist">
-      <div class="greeting">
-        <h2>My Watchlist</h2>
-        <p>Track the coins that matter to you</p>
-      </div>
-
-      <div class="add-watch">
-        <input type="text" id="watchInput" placeholder="Add a coin symbol, e.g. SOL..." />
-        <button class="btn btn-primary" id="btnAddWatch">+ Add</button>
-      </div>
-
-      <div class="watchlist" id="watchlist"></div>
-      <p class="empty-note" id="watchEmpty">No coins in your watchlist yet. Add one above!</p>
-    </section>
-
     <!-- ============ TAB: SIGNALS ============ -->
-    <section class="tab-panel" id="panel-signals">
+    <section class="tab-panel" id="panel-signal">
       <div class="greeting">
-        <h2>Trading Signals</h2>
-        <p>AI-powered buy &amp; sell recommendations</p>
+        <h2>Trade Signals</h2>
+        <p>High-conviction setups from the engine</p>
       </div>
 
-      <!-- Top menu options -->
-      <div class="signal-top-menu">
-        <div class="menu-item">
-          <button class="menu-trigger" id="signalTypeMenu" type="button">
-            <span class="menu-label">Filter</span>
-            <span id="signalTypeLabel">All Types</span>
-            <span class="menu-caret">▾</span>
-          </button>
-          <div class="menu-dropdown" id="signalTypeDropdown">
-            <button type="button" data-val="all">All Types</button>
-            <button type="button" data-val="buy">Buy</button>
-            <button type="button" data-val="sell">Sell</button>
-            <button type="button" data-val="hold">Hold</button>
-            <button type="button" data-val="sniper">Sniper</button>
-          </div>
-        </div>
-        <div class="menu-item">
-          <button class="menu-trigger" id="signalCoinMenu" type="button">
-            <span class="menu-label">Coin</span>
-            <span id="signalCoinLabel">All Coins</span>
-            <span class="menu-caret">▾</span>
-          </button>
-          <div class="menu-dropdown" id="signalCoinDropdown"></div>
+      <div class="signal-hero" id="signalHero"></div>
+
+      <div class="section-head">
+        <h3>Active Signals</h3>
+        <div class="seg" id="signalFilter">
+          <button class="seg-btn active">All</button>
+          <button class="seg-btn">Buy</button>
+          <button class="seg-btn">Sell</button>
         </div>
       </div>
 
-      <div class="filter-chips" id="signalFilters">
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="buy">Buy</button>
-        <button class="chip" data-filter="sell">Sell</button>
-        <button class="chip" data-filter="hold">Hold</button>
-        <button class="chip" data-filter="sniper">Sniper</button>
-      </div>
-
-      <div class="signals-list" id="signalsList"></div>
+      <div class="signal-list" id="signalList"></div>
     </section>
 
     <!-- ============ TAB: NEWS ============ -->
@@ -201,17 +162,13 @@
       <svg viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2z"/></svg>
       <span>Home</span>
     </button>
-    <button class="nav-btn" data-tab="watchlist">
-      <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
-      <span>Watchlist</span>
-    </button>
     <button class="nav-btn" data-tab="chart">
       <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
       <span>Chart</span>
     </button>
-    <button class="nav-btn" data-tab="signals">
-      <svg viewBox="0 0 24 24"><path d="M5 20v-6M12 20V4M19 20v-10"/></svg>
-      <span>Signals</span>
+    <button class="nav-btn" data-tab="signal">
+      <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+      <span>Signal</span>
     </button>
     <button class="nav-btn" data-tab="news">
       <svg viewBox="0 0 24 24"><path d="M4 4h16v14H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
