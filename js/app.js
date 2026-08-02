@@ -134,18 +134,39 @@ function renderFeatured() {
   `).join('');
 }
 
+function deriveLiveSignals() {
+  return COINS.filter(coin => coin.price > 0).map(coin => {
+    const direction = coin.change >= 0 ? 1 : -1;
+    const magnitude = Math.abs(coin.change || 0);
+    const move = Math.min(0.06, Math.max(0.008, magnitude / 100 * 1.5));
+    const risk = Math.min(0.035, Math.max(0.004, move * 0.55));
+    const strength = Math.min(95, Math.max(55, Math.round(60 + magnitude * 4)));
+    return {
+      sym: coin.sym,
+      action: direction > 0 ? 'buy' : 'sell',
+      entry: coin.price,
+      target: coin.price * (1 + direction * move),
+      stop: coin.price * (1 - direction * risk),
+      strength,
+      indicator: magnitude >= 4 ? 'Momentum Surge' : magnitude >= 1.5 ? 'Trend Confirmation' : 'Price Action',
+      tf: magnitude >= 4 ? '1hr' : magnitude >= 1.5 ? '4h' : '1d'
+    };
+  });
+}
+
 function renderSignals() {
-  const list = SIGNALS.filter(s => signalFilter === 'all' || s.action === signalFilter);
-  const buys = SIGNALS.filter(s => s.action === 'buy').length;
-  const sells = SIGNALS.filter(s => s.action === 'sell').length;
-  const avgStrength = Math.round(SIGNALS.reduce((a, s) => a + s.strength, 0) / SIGNALS.length);
+  const liveSignals = deriveLiveSignals();
+  const list = liveSignals.filter(s => signalFilter === 'all' || s.action === signalFilter);
+  const buys = liveSignals.filter(s => s.action === 'buy').length;
+  const sells = liveSignals.filter(s => s.action === 'sell').length;
+  const avgStrength = Math.round(liveSignals.reduce((a, s) => a + s.strength, 0) / liveSignals.length);
 
   $('#signalHero').innerHTML = `
     <div class="signal-hero-top">
       <div class="signal-hero-title">⚡ Signal Engine</div>
       <span class="signal-badge live">LIVE</span>
     </div>
-    <p>${SIGNALS.length} active setups · ${avgStrength}% avg confidence. Updated in real time.</p>
+    <p>${liveSignals.length} live setups · ${avgStrength}% avg confidence. Updated from Coinbase + Kraken.</p>
     <div class="signal-meta">
       <span>🟢 ${buys} Buy</span>
       <span>🔴 ${sells} Sell</span>
@@ -367,8 +388,10 @@ function renderChart() {
   });
 
   const first = candles[0].open;
-  const pct = (lastClose - first) / first * 100;
+  const pct = coin.change || ((lastClose - first) / first * 100);
   const pctColor = pct >= 0 ? 'var(--green)' : 'var(--red)';
+  const pct = coin.change || 0;
+  lastClose = coin.price;
   const coinInfo = `
     <div class="chart-coin-name">${coinIcon(coin)}<span>${coin.name}</span><span class="coin-sym">${coin.sym}</span></div>
     <div class="chart-coin-price" style="color:${pctColor}">${fmtPrice(lastClose)}</div>
