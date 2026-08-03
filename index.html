@@ -87,11 +87,12 @@
       <div class="signal-hero" id="signalHero"></div>
 
       <div class="section-head">
-        <h3>Active Signals</h3>
+<h3>Active Signals</h3>
         <div class="seg" id="signalFilter">
           <button class="seg-btn active">All</button>
           <button class="seg-btn">Buy</button>
           <button class="seg-btn">Sell</button>
+          <button class="seg-btn">Sniper</button>
         </div>
       </div>
 
@@ -150,10 +151,13 @@
         <div class="chart-legend">
           <span><i class="dot up"></i> Bullish</span>
           <span><i class="dot down"></i> Bearish</span>
+          <span>Pattern: <strong>Candlestick</strong></span>
           <span>Timeframe: <strong id="chartTfLabel">1d</strong></span>
+          <span id="chartLiveStatus" class="signal-badge live">LIVE • SYNCING</span>
         </div>
       </div>
-    </section>
+
+</section>
   </main>
 
   <!-- ============ BOTTOM NAV ============ -->
@@ -167,7 +171,7 @@
       <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
       <span>Chart</span>
     </button>
-    <button class="nav-btn" data-tab="signal">
+<button class="nav-btn" data-tab="signal">
       <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
       <span>Signal</span>
     </button>
@@ -178,6 +182,7 @@
   </nav>
 
   <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="js/chart-utils.js"></script>
   <script src="js/app.js?v=4"></script>
 </body>
 </html>
