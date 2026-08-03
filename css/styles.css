@@ -459,6 +459,7 @@ body {
 }
 .signal-badge.buy { background: rgba(34, 197, 94, 0.16); color: var(--green); }
 .signal-badge.sell { background: rgba(239, 68, 68, 0.16); color: var(--red); }
+.signal-badge.sniper { background: rgba(0, 212, 255, 0.16); color: var(--accent-2); }
 .signal-badge.live { background: rgba(245, 158, 11, 0.16); color: var(--gold); }
 
 .signal-indicator { font-size: 11px; color: var(--text-dim); }
@@ -604,6 +605,7 @@ body {
   cursor: pointer;
   transition: color 0.25s ease, transform 0.25s ease;
 }
+.nav-btn span { white-space: nowrap; }
 .nav-btn svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.25s ease; }
 .nav-btn:hover { color: var(--text); }
 .nav-btn:hover svg { transform: translateY(-2px) scale(1.1); }

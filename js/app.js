@@ -40,7 +40,10 @@ const SIGNALS = [
   { sym: 'BNB', action: 'buy', entry: 594, target: 628, stop: 581, strength: 74, indicator: 'Support Hold', tf: '1d' },
   { sym: 'ETH', action: 'sell', entry: 3568, target: 3380, stop: 3645, strength: 81, indicator: 'Overbought', tf: '4h' },
   { sym: 'ADA', action: 'sell', entry: 0.4612, target: 0.4280, stop: 0.4740, strength: 76, indicator: 'Death Cross', tf: '1d' },
-  { sym: 'AVAX', action: 'sell', entry: 37.20, target: 34.10, stop: 38.55, strength: 72, indicator: 'Resistance', tf: '1hr' },
+{ sym: 'AVAX', action: 'sell', entry: 37.20, target: 34.10, stop: 38.55, strength: 72, indicator: 'Resistance', tf: '1hr' },
+  { sym: 'BTC', action: 'buy', type: 'sniper', entry: 67200, target: 68900, stop: 66850, strength: 94, indicator: 'Precision Entry', tf: '15m' },
+  { sym: 'SOL', action: 'buy', type: 'sniper', entry: 171.2, target: 176.8, stop: 169.9, strength: 92, indicator: 'Order Block', tf: '15m' },
+  { sym: 'ETH', action: 'buy', type: 'sniper', entry: 3521, target: 3610, stop: 3498, strength: 90, indicator: 'Liquidity Sweep', tf: '5m' },
 ];
 
 /* ---------- State ---------- */
@@ -50,6 +53,7 @@ let newsFilter = 'all';
 let searchOpen = false;
 let chartCoin = 'BTC';
 let chartTF = '1d';
+let chartLiveTimer = null;
 
 const TIMEFRAMES = ['1m', '3m', '5m', '15m', '30m', '1hr', '4hr', '1d'];
 
@@ -163,27 +167,43 @@ function renderSignals() {
     const risk = Math.min(0.035, Math.max(0.004, move * 0.55));
     return { sym: scan.symbol, action: scan.action, entry: scan.price, target: scan.price * (1 + direction * move), stop: scan.price * (1 - direction * risk), strength: scan.confidence, indicator: scan.indicator, tf: '1h', coin };
   }) : deriveLiveSignals();
-  const list = liveSignals.filter(s => signalFilter === 'all' || s.action === signalFilter);
-  const buys = liveSignals.filter(s => s.action === 'buy').length;
-  const sells = liveSignals.filter(s => s.action === 'sell').length;
-  const avgStrength = Math.round(liveSignals.reduce((a, s) => a + s.strength, 0) / liveSignals.length);
+
+  // Sniper signals: high-conviction, precise entries. Treated as buy-direction.
+  const sniperSignals = SIGNALS.filter(s => s.type === 'sniper').map(s => {
+    const coin = getCoin(s.sym);
+    return { ...s, coin, action: 'buy' };
+  });
+  const allSignals = [...liveSignals, ...sniperSignals];
+
+  const list = allSignals.filter(s => {
+    if (signalFilter === 'all') return true;
+    if (signalFilter === 'sniper') return s.type === 'sniper';
+    return s.action === signalFilter;
+  });
+  const buys = allSignals.filter(s => s.action === 'buy').length;
+  const sells = allSignals.filter(s => s.action === 'sell').length;
+const snipers = sniperSignals.length;
+  const avgStrength = Math.round(allSignals.reduce((a, s) => a + s.strength, 0) / allSignals.length);
 
   $('#signalHero').innerHTML = `
     <div class="signal-hero-top">
       <div class="signal-hero-title">⚡ Signal Engine</div>
       <span class="signal-badge live">LIVE</span>
     </div>
-    <p>${liveSignals.length} live setups · ${avgStrength}% avg confidence. Updated from Coinbase + Kraken.</p>
+    <p>${allSignals.length} live setups · ${avgStrength}% avg confidence. Updated from Coinbase + Kraken.</p>
     <div class="signal-meta">
       <span>🟢 ${buys} Buy</span>
       <span>🔴 ${sells} Sell</span>
+      <span>🎯 ${snipers} Sniper</span>
       <span>📶 Avg ${avgStrength}%</span>
     </div>
   `;
 
   $('#signalList').innerHTML = list.map(s => {
-    const coin = getCoin(s.sym);
-    const strengthColor = s.action === 'buy' ? 'var(--green)' : 'var(--red)';
+    const coin = s.coin || getCoin(s.sym);
+    const isSniper = s.type === 'sniper';
+    const strengthColor = isSniper ? 'var(--accent-2)' : s.action === 'buy' ? 'var(--green)' : 'var(--red)';
+    const badgeLabel = isSniper ? 'SNIPER' : s.action.toUpperCase();
     return `
       <div class="signal-card" data-sym="${s.sym}">
         <div class="signal-card-left">
@@ -202,7 +222,7 @@ function renderSignals() {
           </div>
         </div>
         <div class="signal-card-right">
-          <span class="signal-badge ${s.action}">${s.action.toUpperCase()}</span>
+          <span class="signal-badge ${isSniper ? 'sniper' : s.action}">${badgeLabel}</span>
           <div class="signal-strength">
             <span>${s.strength}%</span>
             <div class="signal-strength-bar"><i style="width:${s.strength}%;background:${strengthColor}"></i></div>
@@ -250,6 +270,14 @@ function setActiveTab(tab) {
   activeTab = tab;
   $$('.tab-panel').forEach(p => p.classList.remove('active'));
   $('#panel-' + tab).classList.add('active');
+
+  if (tab === 'chart') {
+    const activeTf = $('#tfSelect .tf-btn.active');
+    if (activeTf) {
+      chartTF = activeTf.dataset.tf || chartTF;
+    }
+    renderChart();
+  }
 
   const btns = $$('.nav-btn');
   const idx = btns.findIndex(b => b.dataset.tab === tab);
@@ -335,7 +363,7 @@ function fetchLivePrices() {
         // Keep Chart and Signals anchored to the same live proxy price as Market.
         if (chartScans[coin.sym]) chartScans[coin.sym].price = coin.price;
       });
-      renderMarketList(currentMarketFilter);
+renderMarketList(currentMarketFilter);
       renderFeatured();
       renderSignals();
       renderChartCoins();
@@ -363,6 +391,30 @@ function startLiveUpdates() {
 let currentMarketFilter = 'all';
 
 /* ---------- Chart helpers ---------- */
+const chartUtils = window.ChartUtils || {};
+const getChartTimeframeSeconds = chartUtils.getChartTimeframeSeconds || function (tf) {
+  const map = { '1m': 60, '3m': 180, '5m': 300, '15m': 900, '30m': 1800, '1hr': 3600, '4hr': 14400, '1d': 86400 };
+  return map[tf] || 86400;
+};
+const buildChartSeriesData = chartUtils.buildChartSeriesData || function (candles, tf, options = {}) {
+  const secondsPerBar = getChartTimeframeSeconds(tf);
+  const now = options.now ?? Math.floor(Date.now() / 1000);
+  return candles.map((candle, index) => {
+    const fallbackTime = now - (candles.length - index) * secondsPerBar;
+    const rawTime = candle?.time;
+    const time = Number.isFinite(rawTime) && rawTime > 0
+      ? Math.floor(rawTime > 1e12 ? rawTime / 1000 : rawTime)
+      : fallbackTime;
+    const item = { time, open: candle.open, high: candle.high, low: candle.low, close: candle.close };
+    if (options.lastPrice !== undefined && index === candles.length - 1) {
+      item.close = options.lastPrice;
+      item.high = Math.max(item.high, options.lastPrice);
+      item.low = Math.min(item.low, options.lastPrice);
+    }
+    return item;
+  });
+};
+
 function scopedRand(seed) {
   let s = seed % 2147483647;
   if (s <= 0) s += 2147483646;
@@ -373,22 +425,22 @@ function scopedRand(seed) {
 }
 
 function generateCandles(sym, tf, count = 40) {
-  const scannedCandles = chartScans[sym]?.candles;
-  if (scannedCandles?.length) return scannedCandles.slice(-count);
   const coin = getCoin(sym);
-  const base = coin.price;
+  const base = coin?.price || 1;
   const seed = sym.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) + tf.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0);
   const rnd = scopedRand(seed + 7);
-  const volatility = base * (tf === '1d' ? 0.006 : 0.003);
+  const timeframeFactor = tf === '1d' ? 1.1 : tf === '4hr' || tf === '1hr' ? 0.95 : 0.75;
+  const volatility = base * (tf === '1d' ? 0.008 : 0.0045);
   const candles = [];
   let prevClose = base * (1 - 0.03 + rnd() * 0.06);
   let prevVol = base * 900;
   for (let i = 0; i < count; i++) {
-    const drift = (rnd() - 0.5) * 2 * volatility * 0.6;
+    const trend = (i % 5 === 0 ? 1 : -1) * (0.18 + rnd() * 0.2);
+    const drift = trend * volatility * 0.75 * timeframeFactor + (rnd() - 0.5) * volatility * 0.25;
     const open = prevClose;
-    const close = open + drift + (rnd() - 0.5) * volatility;
-    const high = Math.max(open, close) + rnd() * volatility * 0.6;
-    const low = Math.min(open, close) - rnd() * volatility * 0.6;
+    const close = open + drift;
+    const high = Math.max(open, close) + Math.abs(drift) * 0.65 + rnd() * volatility * 0.25;
+    const low = Math.min(open, close) - Math.abs(drift) * 0.65 - rnd() * volatility * 0.25;
     const volFactor = 0.55 + rnd() * 0.9;
     const volume = Math.round(Math.max(prevVol * volFactor, base * 60));
     candles.push({ open, close, high, low, volume });
@@ -398,10 +450,15 @@ function generateCandles(sym, tf, count = 40) {
   return candles;
 }
 
-function renderChart() {
+async function renderChart() {
   const coin = getCoin(chartCoin);
-  const candles = generateCandles(chartCoin, chartTF);
-  if (!coin || !candles.length) return;
+  if (!coin) return;
+
+  const chartKey = `${chartCoin}:${chartTF}`;
+  const chartLabel = $('#chartTfLabel');
+  const chartStatus = $('#chartLiveStatus');
+  if (chartLabel) chartLabel.textContent = `${chartTF} · Candlestick`;
+  if (chartStatus) chartStatus.textContent = 'LIVE • SYNCING';
 
   const pct = coin.change || 0;
   const pctColor = pct >= 0 ? 'var(--green)' : 'var(--red)';
@@ -410,15 +467,15 @@ function renderChart() {
     <div class="chart-coin-price" style="color:${pctColor}">${fmtPrice(coin.price)}</div>
     <div class="chart-coin-change ${changeColorClass(pct)}">${changeArrow(pct)} ${Math.abs(pct).toFixed(2)}%</div>`;
   $('#chartCoinInfo').innerHTML = coinInfo;
-  $('#chartTfLabel').textContent = `${chartTF} · TradingView`;
 
-  const chartKey = `${chartCoin}:${chartTF}`;
+  const chartWrap = $('#chartWrap');
   if (!window.LightweightCharts) {
-    $('#chartWrap').innerHTML = '<div class="chart-loading">TradingView chart library loading…</div>';
+    chartWrap.innerHTML = '<div class="chart-loading">TradingView chart library loading…</div>';
     return;
   }
+
   if (!tvChart || tvChartKey !== chartKey || !document.querySelector('#tvChart')) {
-    $('#chartWrap').innerHTML = '<div id="tvChart" style="width:100%;height:220px"></div>';
+    chartWrap.innerHTML = '<div id="tvChart" style="width:100%;height:220px"></div>';
     const el = $('#tvChart');
     tvChart = LightweightCharts.createChart(el, {
       width: el.clientWidth || 560,
@@ -438,25 +495,58 @@ function renderChart() {
     });
     tvChart.priceScale('').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
     tvChartKey = chartKey;
-    new ResizeObserver(() => { if (tvChart && el.clientWidth) tvChart.applyOptions({ width: el.clientWidth }); }).observe(el);
+    const resizeChart = () => { if (tvChart && $('#tvChart')?.clientWidth) tvChart.applyOptions({ width: $('#tvChart').clientWidth }); };
+    new ResizeObserver(resizeChart).observe($('#tvChart'));
+    resizeChart();
   }
 
+  let candles = [];
+  try {
+    const symbol = buildBinanceSymbol(chartCoin);
+    const interval = mapBinanceInterval(chartTF);
+    const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=40`);
+    if (!response.ok) throw new Error(`API ${response.status}`);
+    const payload = await response.json();
+    candles = payload.map(k => ({
+      time: k[0],
+      open: Number(k[1]),
+      high: Number(k[2]),
+      low: Number(k[3]),
+      close: Number(k[4]),
+      volume: Number(k[5]),
+    }));
+    if (chartStatus) chartStatus.textContent = 'LIVE • ACTIVE';
+  } catch (error) {
+    console.warn('Falling back to synthetic candles:', error);
+    candles = generateCandles(chartCoin, chartTF);
+    if (chartStatus) chartStatus.textContent = 'LIVE • FALLBACK';
+  }
+
+  if (!candles.length) return;
+
   const now = Math.floor(Date.now() / 1000);
-  const data = candles.map((c, i) => ({
-    time: Number.isFinite(c.time) ? Math.floor(c.time / 1000) : now - (candles.length - i) * 3600,
-    open: c.open, high: c.high, low: c.low, close: c.close,
+  const data = buildChartSeriesData(candles, chartTF, { now, lastPrice: coin.price });
+  const volume = data.map((c, i) => ({
+    time: c.time, value: Number(candles[i].volume || 0), color: candles[i].close >= candles[i].open ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
   }));
-  const volume = candles.map((c, i) => ({
-    time: data[i].time, value: Number(c.volume || 0), color: c.close >= c.open ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
-  }));
-  // CMP is the live market price; update the latest candle close so the chart and Signal card match.
-  data[data.length - 1].close = coin.price;
-  data[data.length - 1].high = Math.max(data[data.length - 1].high, coin.price);
-  data[data.length - 1].low = Math.min(data[data.length - 1].low, coin.price);
   tvCandleSeries.setData(data);
   tvVolumeSeries.setData(volume);
-  tvChart.timeScale().fitContent();
+  requestAnimationFrame(() => {
+    if (!tvChart) return;
+    tvChart.applyOptions({ width: ($('#tvChart').clientWidth || 560), height: 220 });
+    tvChart.timeScale().fitContent();
+  });
 }
+
+function startChartAutoRefresh() {
+  if (chartLiveTimer) clearInterval(chartLiveTimer);
+  chartLiveTimer = setInterval(() => {
+    if (activeTab === 'chart') {
+      renderChart();
+    }
+  }, 5000);
+}
+
 function renderChartCoins() {
   $('#chartCoins').innerHTML = COINS.map(c => `
     <button class="coin-chip ${c.sym === chartCoin ? 'active' : ''}" data-coin="${c.sym}">${c.sym}</button>
@@ -501,6 +591,12 @@ function openChartForCoin(sym) {
   setActiveTab('chart');
 }
 
+function syncChartTimeframeButtons() {
+  $$('#tfSelect .tf-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tf === chartTF);
+  });
+}
+
 /* ---------- Event wiring ---------- */
 function initEvents() {
   // Bottom nav
@@ -542,8 +638,8 @@ function initEvents() {
     btn.addEventListener('click', () => {
       $$('#signalFilter .seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const label = btn.textContent.toLowerCase();
-      signalFilter = label === 'buy' ? 'buy' : label === 'sell' ? 'sell' : 'all';
+const label = btn.textContent.toLowerCase();
+      signalFilter = label === 'buy' ? 'buy' : label === 'sell' ? 'sell' : label === 'sniper' ? 'sniper' : 'all';
       renderSignals();
     });
   });
@@ -572,7 +668,7 @@ function initEvents() {
     const btn = e.target.closest('.tf-btn');
     if (!btn) return;
     chartTF = btn.dataset.tf;
-    $$('#tfSelect .tf-btn').forEach(b => b.classList.toggle('active', b.dataset.tf === chartTF));
+    syncChartTimeframeButtons();
     renderChart();
   });
 
@@ -594,7 +690,7 @@ function initEvents() {
     }
   });
 
-  // Alert button toast
+// Alert button toast
   $('#btnAlert').addEventListener('click', () => {
     showToast('🔔 No active alerts. Check the Signal tab for live trade setups!');
   });
@@ -622,6 +718,7 @@ function init() {
   renderSignals();
   renderNews();
   renderChartCoins();
+  syncChartTimeframeButtons();
   renderChart();
 
   // Deep-link: open the tab from URL hash (e.g. #home, #news)
@@ -634,6 +731,7 @@ function init() {
   });
 
   startLiveUpdates();
+  startChartAutoRefresh();
   window.addEventListener('resize', () => {
     // re-align indicator on resize
     setActiveTab(activeTab);
