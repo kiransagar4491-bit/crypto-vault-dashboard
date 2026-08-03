@@ -200,7 +200,7 @@ const snipers = sniperSignals.length;
     const coin = s.coin || getCoin(s.sym);
     const isSniper = s.type === 'sniper';
     const strengthColor = isSniper ? 'var(--accent-2)' : s.action === 'buy' ? 'var(--green)' : 'var(--red)';
-    const badgeLabel = isSniper ? 'SNIPER' : s.action.toUpperCase();
+    const badgeLabel = isSniper ? (s.signalStatus === 'watch' ? 'WATCH' : 'SNIPER') : s.action.toUpperCase();
     return `
       <div class="signal-card" data-sym="${s.sym}">
         <div class="signal-card-left">

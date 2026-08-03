@@ -6,7 +6,8 @@ const SYMBOLS: Record<string, string> = {
 const TIMEFRAMES = [5, 15, 30, 60, 240];
 const RSI_MID = 50;
 const ADX_THRESHOLD = 25;
-const MIN_SCORE = 70;
+const MIN_SCORE = 65;
+const CROSS_LOOKBACK_BARS = 3;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 type Candle = { time: number; open: number; high: number; low: number; close: number; volume: number };
@@ -87,8 +88,8 @@ function evaluate(symbol: string, frames: Record<number, Candle[]>) {
   const close = base.map(x => x.close), fast = ema(close, 9), slow = ema(close, 21);
   const rv = rsi(close), m = macd(close), ax = adx(base), vw = vwap(base), at = atr(base);
   const i = base.length - 1, prev = i - 1;
-  const bullCross = fast[prev] <= slow[prev] && fast[i] > slow[i];
-  const bearCross = fast[prev] >= slow[prev] && fast[i] < slow[i];
+  const bullCross = Array.from({ length: CROSS_LOOKBACK_BARS }, (_, n) => i - n).some(j => j > 0 && fast[j - 1] <= slow[j - 1] && fast[j] > slow[j]);
+  const bearCross = Array.from({ length: CROSS_LOOKBACK_BARS }, (_, n) => i - n).some(j => j > 0 && fast[j - 1] >= slow[j - 1] && fast[j] < slow[j]);
   const volAvg = close.map((_, n) => base.slice(Math.max(0, n - 20), n).reduce((a, x) => a + x.volume, 0) / Math.max(1, Math.min(20, n)));
   const bullish = [
     close[i] > vw[i], rv[i] > RSI_MID, m.line[i] > m.signal[i], fast[i] > slow[i],
@@ -102,8 +103,11 @@ function evaluate(symbol: string, frames: Record<number, Candle[]>) {
   ];
   const bullPct = bullish.filter(Boolean).length / bullish.length * 100;
   const bearPct = bearish.filter(Boolean).length / bearish.length * 100;
-  const direction = bullCross && bullPct >= MIN_SCORE ? 'buy' : bearCross && bearPct >= MIN_SCORE ? 'sell' : null;
+  const dominantScore = Math.max(bullPct, bearPct);
+  const activeDirection = bullCross && bullPct >= MIN_SCORE ? 'buy' : bearCross && bearPct >= MIN_SCORE ? 'sell' : null;
+  const direction = activeDirection || (dominantScore >= MIN_SCORE ? (bullPct >= bearPct ? 'buy' : 'sell') : null);
   if (!direction) return null;
+  const signalStatus = activeDirection ? 'active' : 'watch';
   const score = Math.round(direction === 'buy' ? bullPct : bearPct);
   const risk = at[i] * 1.5, entry = close[i];
   const stop = direction === 'buy' ? entry - risk : entry + risk;
@@ -111,7 +115,7 @@ function evaluate(symbol: string, frames: Record<number, Candle[]>) {
   const prior = base.slice(Math.max(0, i - 20), i);
   const orderBlock = direction === 'buy' ? base[i - 1]?.close < base[i - 1]?.open && base[i].close > base[i - 1].high : base[i - 1]?.close > base[i - 1]?.open && base[i].close < base[i - 1].low;
   const sweptLiquidity = direction === 'buy' ? base[i].low < Math.min(...prior.map(x => x.low)) && base[i].close > Math.min(...prior.map(x => x.low)) : base[i].high > Math.max(...prior.map(x => x.high)) && base[i].close < Math.max(...prior.map(x => x.high));
-  return { symbol, type: 'sniper', action: direction, price: entry, entry, target: targets[1], targets, stop, confidence: score, timeframe: '15m', historicalBars: Object.fromEntries(Object.entries(frames).map(([tf, candles]) => [tf, candles.length])), historicalContext: 'Historical OHLC candles collected across 5m/15m/30m/1h/4h', indicator: [orderBlock ? 'Order Block' : null, sweptLiquidity ? 'Liquidity Sweep' : null, `MTF RSI ${score}%`, ax[i] > ADX_THRESHOLD ? 'ADX Trend' : null].filter(Boolean).join(' · '), metrics: { bullPct: Math.round(bullPct), bearPct: Math.round(bearPct), rsi: rv[i], adx: ax[i], atr: at[i], ema9: fast[i], ema21: slow[i], vwap: vw[i], multiTimeframeRsi: Object.fromEntries([5, 15, 30, 60, 240].map(tf => [tf, rsi(frames[tf].map(x => x.close)).at(-1)])) } };
+  return { symbol, type: 'sniper', signalStatus, action: direction, price: entry, entry, target: targets[1], targets, stop, confidence: score, timeframe: '15m', signalWindow: `recent ${CROSS_LOOKBACK_BARS} x 15m candles`, historicalBars: Object.fromEntries(Object.entries(frames).map(([tf, candles]) => [tf, candles.length])), historicalContext: 'Historical OHLC candles collected across 5m/15m/30m/1h/4h', indicator: [signalStatus === 'watch' ? 'Waiting for EMA Cross' : null, orderBlock ? 'Order Block' : null, sweptLiquidity ? 'Liquidity Sweep' : null, `MTF RSI ${score}%`, ax[i] > ADX_THRESHOLD ? 'ADX Trend' : null].filter(Boolean).join(' · '), metrics: { bullPct: Math.round(bullPct), bearPct: Math.round(bearPct), rsi: rv[i], adx: ax[i], atr: at[i], ema9: fast[i], ema21: slow[i], vwap: vw[i], multiTimeframeRsi: Object.fromEntries([5, 15, 30, 60, 240].map(tf => [tf, rsi(frames[tf].map(x => x.close)).at(-1)])) } };
 }
 
 Deno.serve(async (req) => {
@@ -119,5 +123,5 @@ Deno.serve(async (req) => {
   const jobs = Object.entries(SYMBOLS).flatMap(([symbol, pair]) => TIMEFRAMES.map(interval => ({ symbol, pair, interval })));
   const results = await mapLimit(jobs, 5, async job => ({ ...job, candles: await fetchCandles(job.pair, job.interval) }));
   const data = Object.keys(SYMBOLS).map(symbol => { const frames: Record<number, Candle[]> = {}; results.filter(x => x.symbol === symbol).forEach(x => frames[x.interval] = x.candles); return evaluate(symbol, frames); }).filter(Boolean);
-  return Response.json({ agent: 'CryptoVault Sniper AI Agent', type: 'sniper', mode: 'historical-candle-analysis', timeframe: '15m execution · 5m/15m/30m/1h/4h RSI confirmation', lookback: 'up to 250 candles per timeframe', min_score: MIN_SCORE, logic: ['EMA 9/21 crossover or crossunder', 'VWAP direction', 'RSI and multi-timeframe RSI alignment', 'MACD 12/26/9', 'ADX > 25', 'volume vs 20-period average', 'ATR 14 with 1.5x stop and 1R-5R targets'], data, scanned: Object.keys(SYMBOLS).length, generated_at: new Date().toISOString() });
+  return Response.json({ agent: 'CryptoVault Sniper AI Agent', type: 'sniper', mode: 'historical-candle-analysis', timeframe: '15m execution · 5m/15m/30m/1h/4h RSI confirmation', lookback: 'up to 250 candles per timeframe', min_score: MIN_SCORE, cross_lookback_bars: CROSS_LOOKBACK_BARS, logic: ['EMA 9/21 crossover or crossunder; watch candidates wait for trigger' , 'VWAP direction', 'RSI and multi-timeframe RSI alignment', 'MACD 12/26/9', 'ADX > 25', 'volume vs 20-period average', 'ATR 14 with 1.5x stop and 1R-5R targets'], data, scanned: Object.keys(SYMBOLS).length, generated_at: new Date().toISOString() });
 });
