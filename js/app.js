@@ -98,6 +98,12 @@ function sparkline(sym, change, width = 58, height = 30) {
   </svg>`;
 }
 
+function formatSignalTime(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return 'Just now';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
 /* ---------- Render helpers ---------- */
 function coinIcon(coin) {
   return `<div class="coin-icon" style="background:${coin.color}">${coin.icon}</div>`;
@@ -153,7 +159,8 @@ function deriveLiveSignals() {
       stop: coin.price * (1 - direction * risk),
       strength,
       indicator: magnitude >= 4 ? 'Momentum Surge' : magnitude >= 1.5 ? 'Trend Confirmation' : 'Price Action',
-      tf: magnitude >= 4 ? '1hr' : magnitude >= 1.5 ? '4h' : '1d'
+      tf: magnitude >= 4 ? '1hr' : magnitude >= 1.5 ? '4h' : '1d',
+      generatedAt: new Date().toISOString()
     };
   });
 }
@@ -209,6 +216,7 @@ const snipers = sniperSignals.length;
             <div>
               <div class="coin-name">${coin.name} <span class="coin-sym">${coin.sym}</span></div>
               <div class="signal-indicator">${s.indicator} · ${s.tf}</div>
+              <div class="signal-generated" title="${s.generatedAt || ''}">Generated ${formatSignalTime(s.generatedAt)}</div>
             </div>
           </div>
           <div class="signal-price-row">
@@ -325,6 +333,7 @@ async function fetchSniperSignals() {
         sym: signal.symbol,
         tf: signal.timeframe || '15m',
         strength: signal.confidence,
+        generatedAt: signal.generated_at || payload.generated_at,
         coin: getCoin(signal.symbol),
       }));
       renderSignals();
@@ -348,7 +357,7 @@ async function fetchChartScans() {
     .then(payload => {
       chartScans = Object.fromEntries(payload.data.map(scan => {
         const liveCoin = getCoin(scan.symbol);
-        return [scan.symbol, { ...scan, price: liveCoin?.price ?? scan.price }];
+        return [scan.symbol, { ...scan, generatedAt: scan.generated_at || payload.generated_at, price: liveCoin?.price ?? scan.price }];
       }));
       renderSignals();
       renderChart();
